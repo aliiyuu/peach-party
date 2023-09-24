@@ -7,40 +7,40 @@
 #include <string>
 using namespace std;
 
+// Students:  Add code to this file, StudentWorld.h, Actor.h, and Actor.cpp
+
 GameWorld* createStudentWorld(string assetPath)
 {
     return new StudentWorld(assetPath);
 }
 
-// Students:  Add code to this file, StudentWorld.h, Actor.h, and Actor.cpp
-
 StudentWorld::StudentWorld(string assetPath) : GameWorld(assetPath)
 {
     m_board = Board();
-    
-    // Starting coordinates
+    m_bank = 0;
 }
 
-// Destructor
 StudentWorld::~StudentWorld()
 {
-// Somehow this doesn't work when I put it in cleanUp()
+    cleanUp();
 }
 
+// Access the board
 Board StudentWorld::board()
 {
     return m_board;
 }
 
+// Initialize the game
 int StudentWorld::init()
 {
-    //startCountdownTimer(5);  // this placeholder causes timeout after 5 seconds
-    //return GWSTATUS_CONTINUE_GAME;
+    // Load the board
     string board_file = assetPath()+"board";
     board_file += "0"+to_string(getBoardNumber())+".txt";
             
     Board::LoadResult result = m_board.loadBoard(board_file);
     
+    // Initialize all actors
     if (result == Board::load_fail_bad_format || result == Board::load_fail_file_not_found)
         return GWSTATUS_BOARD_ERROR;
             
@@ -50,146 +50,230 @@ int StudentWorld::init()
             {
                 switch (m_board.getContentsOf(i, j))
                 {
-                    case Board::empty: {
-                        break;
-                    }
                     case Board::player:
                     {
                         m_peach = new Player(1, this, IID_PEACH, SPRITE_WIDTH*i, SPRITE_HEIGHT*j);
                         m_yoshi = new Player(2, this, IID_YOSHI, SPRITE_WIDTH*i, SPRITE_HEIGHT*j);
-                        m_actors.push_back(new CoinSquare(this, IID_BLUE_COIN_SQUARE, SPRITE_WIDTH*i, SPRITE_HEIGHT*j));
+                        newActor(new CoinSquare(this, SPRITE_WIDTH*i, SPRITE_HEIGHT*j, BLUE));
                         break;
                     }
                     case Board::blue_coin_square:
                     {
-                        m_actors.push_back(new CoinSquare(this, IID_BLUE_COIN_SQUARE, SPRITE_WIDTH*i, SPRITE_HEIGHT*j));
+                        newActor(new CoinSquare(this, SPRITE_WIDTH*i, SPRITE_HEIGHT*j, BLUE));
                         break;
                     }
-                    case Board::red_coin_square: {
-                        m_actors.push_back(new CoinSquare(this, IID_RED_COIN_SQUARE, SPRITE_WIDTH*i, SPRITE_HEIGHT*j));
+                    case Board::red_coin_square:
+                    {
+                        newActor(new CoinSquare(this, SPRITE_WIDTH*i, SPRITE_HEIGHT*j, RED));
                         break;
                     }
-                    case Board::up_dir_square: {
-                        m_actors.push_back(new CoinSquare(this, IID_DIR_SQUARE, SPRITE_WIDTH*i, SPRITE_HEIGHT*j));
+                    case Board::up_dir_square:
+                    {
+                        newActor(new DirectionalSquare(this, SPRITE_WIDTH*i, SPRITE_HEIGHT*j, GraphObject::up));
                         break;
                     }
-                    case Board::down_dir_square: {
-                        m_actors.push_back(new CoinSquare(this, IID_DIR_SQUARE, SPRITE_WIDTH*i, SPRITE_HEIGHT*j));
+                    case Board::down_dir_square:
+                    {
+                        newActor(new DirectionalSquare(this, SPRITE_WIDTH * i, SPRITE_HEIGHT * j, GraphObject::down));
                         break;
                     }
-                    case Board::left_dir_square: {
-                        m_actors.push_back(new CoinSquare(this, IID_DIR_SQUARE, SPRITE_WIDTH*i, SPRITE_HEIGHT*j));
+                    case Board::left_dir_square:
+                    {
+                        newActor(new DirectionalSquare(this, SPRITE_WIDTH * i, SPRITE_HEIGHT * j, GraphObject::left));
                         break;
                     }
-                    case Board::right_dir_square: {
-                        m_actors.push_back(new CoinSquare(this, IID_DIR_SQUARE, SPRITE_WIDTH*i, SPRITE_HEIGHT*j));
+                    case Board::right_dir_square:
+                    {
+                        newActor(new DirectionalSquare(this, SPRITE_WIDTH * i, SPRITE_HEIGHT * j, GraphObject::right));
                         break;
                     }
-                    case Board::event_square: {
-                        m_actors.push_back(new CoinSquare(this, IID_EVENT_SQUARE, SPRITE_WIDTH*i, SPRITE_HEIGHT*j));
+                    case Board::event_square:
+                    {
+                        newActor(new EventSquare(this, SPRITE_WIDTH*i, SPRITE_HEIGHT*j));
                         break;
                     }
-                    case Board::bank_square: {
-                        m_actors.push_back(new CoinSquare(this, IID_BANK_SQUARE, SPRITE_WIDTH*i, SPRITE_HEIGHT*j));
+                    case Board::bank_square:
+                    {
+                        newActor(new BankSquare(this, SPRITE_WIDTH * i, SPRITE_HEIGHT * j));
                         break;
                     }
-                    case Board::star_square: {
-                        m_actors.push_back(new CoinSquare(this, IID_STAR_SQUARE, SPRITE_WIDTH*i, SPRITE_HEIGHT*j));
+                    case Board::star_square:
+                    {
+                        newActor(new StarSquare(this, SPRITE_WIDTH * i, SPRITE_HEIGHT * j));
                         break;
                     }
-                    case Board::bowser: {
-                        m_actors.push_back(new CoinSquare(this, IID_BOWSER, SPRITE_WIDTH*i, SPRITE_HEIGHT*j));
+                    case Board::bowser:
+                    {
+                        newActor(new Bowser(this, SPRITE_WIDTH * i, SPRITE_HEIGHT * j));
+                        newActor(new CoinSquare(this, SPRITE_WIDTH*i, SPRITE_HEIGHT*j, BLUE));
                         break;
                     }
-                    case Board::boo: {
-                        m_actors.push_back(new CoinSquare(this, IID_BOO, SPRITE_WIDTH*i, SPRITE_HEIGHT*j));
+                    case Board::boo:
+                    {
+                        newActor(new Boo(this, SPRITE_WIDTH * i, SPRITE_HEIGHT * j));
+                        newActor(new CoinSquare(this, SPRITE_WIDTH*i, SPRITE_HEIGHT*j, BLUE));
                         break;
                     }
+                    default:
+                        break;
                 }
             }
         }
     
-    startCountdownTimer(100);
-
-    
+    // Start countdown and continue the game
+    startCountdownTimer(99);
     return GWSTATUS_CONTINUE_GAME;
 }
 
-Player* StudentWorld::peach()
-{
-    return m_peach;
-}
-
-Player* StudentWorld::yoshi()
-{
-    return m_yoshi;
-}
-
+// Update the board
 int StudentWorld::move()
 {
-    // This code is here merely to allow the game to build, run, and terminate after you hit ESC.
-    // Notice that the return value GWSTATUS_NOT_IMPLEMENTED will cause our framework to end the game.
-    
+    // Set game stat text
     ostringstream oss;
     oss.setf(ios::fixed);
-    oss << "P1 Roll: ";
-    oss << m_peach->getTicksToMove()/8 << " ";
-    oss << "Stars: ";
-    oss << m_peach->getStars() << " ";
-    oss << "$$: ";
-    oss << m_peach->getCoins() << " ";
+    
+    oss << "P1 Roll: " << m_peach->getTicksToMove()/8 << " " << "Stars: " << m_peach->getStars() << " " << "$$: " << m_peach->getCoins() << " ";
+    if (m_peach->hasVortex()) oss << "VOR ";
     oss << "| ";
-    oss << "Time: ";
-    oss << timeRemaining() << " ";
+    oss << "Time: " << timeRemaining() << " ";
     oss << "| ";
-    oss << "Bank: ";
-    oss << 0 << " ";
-    oss << "| ";
-    oss << "P2 Roll: ";
-    oss << m_yoshi->getTicksToMove()/8 << " ";
-    oss << "Stars: ";
-    oss << m_yoshi->getStars() << " ";
-    oss << "$$: ";
-    oss << m_yoshi->getCoins();
+    oss << "Bank: " << m_bank << " " << "| ";
+    oss << "P2 Roll: " << m_yoshi->getTicksToMove()/8 << " " << "Stars: " << m_yoshi->getStars() << " " << "$$: " << m_yoshi->getCoins();
+    if (m_yoshi->hasVortex()) oss << " VOR";
 
-    string output = oss.str();
+    setGameStatText(oss.str());
     
-
-    setGameStatText(output);
+    // Have all active actors do something, and delete all inactive ones
+    if (m_peach) m_peach->doSomething();
+    if (m_yoshi) m_yoshi->doSomething();
     
-    m_peach->doSomething();
-    m_yoshi->doSomething();
-    
-    for (int i = 0; i < m_actors.size(); i++)
-        if (m_actors[i]->isActive())
+    for (vector<Actor*>::iterator it = m_actors.begin(); it != m_actors.end(); )
+    {
+        if (*it != nullptr)
         {
-            m_actors[i]->doSomething();
+            if (!(*it)->isActive())
+            {
+                Actor* a = *it;
+                it = m_actors.erase(it);
+                delete a;
+            }
+            else
+            {
+                ((Actor*)*it)->doSomething();
+                it++;
+            }
         }
-
-    if (timeRemaining() <= 0)
-        return  GWSTATUS_PEACH_WON; // placeholder
+    }
     
-    return GWSTATUS_CONTINUE_GAME;
+    // Update final score
+    setFinalScore(winner()->getStars(), winner()->getCoins());
+    
+    // End game
+    if (timeRemaining() <= 0)
+    {
+        playSound(SOUND_GAME_FINISHED);
+        if (winner() == m_peach) return  GWSTATUS_PEACH_WON;
+        else return GWSTATUS_YOSHI_WON;
+    }
+    
+    return GWSTATUS_CONTINUE_GAME; // If game is not over, continue
 }
 
+// Delete all actors
 void StudentWorld::cleanUp()
 {
+    delete m_peach;
+    m_peach = nullptr;
+    delete m_yoshi;
+    m_yoshi = nullptr;
+    
     while (m_actors.size() > 0)
     {
         vector<Actor*>::iterator it = m_actors.begin();
         delete *it;
         m_actors.erase(it);
     }
-    delete m_peach;
-    delete m_yoshi;
 }
 
-// get an actor (to check overlap)
-Actor* StudentWorld::getActor(int i)
+// Allocate a new non-player actor
+void StudentWorld::newActor(Actor* a) { m_actors.push_back(a); }
+
+// Delete an actor during the game
+void StudentWorld::removeActor(Actor* a)
 {
-    if (i < m_actors.size() && i >= 0)
-        return m_actors[i];
-    return nullptr;
+    for (vector<Actor*>::iterator it = m_actors.begin(); it != m_actors.end(); it++)
+    {
+        if (*it == a)
+        {
+            it = m_actors.erase(it);
+            delete *it;
+            return;
+        }
+    }
 }
 
+Player* StudentWorld::player(int playerNum) { return playerNum == 1 ? m_peach : m_yoshi; } // Return a pointer to a player
 
+// Delete a square at the current position of a new (dropping) square
+void StudentWorld::replaceSquare(Actor* agent, Actor* newSquare)
+{
+    for (vector<Actor*>::iterator it = m_actors.begin(); it != m_actors.end(); it++)
+    {
+        if (!(*it)->isMovable() && (*it) != agent && agent->align(*it))
+        {
+            Actor* temp = *it;
+            *it = newSquare;
+            delete temp;
+        }
+    }
+}
+
+int StudentWorld::bankBalance() { return m_bank; } // Return bank balance
+
+// Add an amount of coins to the bank
+void StudentWorld::addToBank(int coins)
+{
+    m_bank += coins;
+}
+
+void StudentWorld::resetBank() {m_bank = 0;} // Reset bank balance to 0
+
+// Check if a vortex has hit any impactable actors at a specified location
+bool StudentWorld::checkVortexImpact(int x, int y)
+{
+    for (vector<Actor*>::iterator it = m_actors.begin(); it != m_actors.end(); it++)
+    {
+        if ((*it)->impactable() && (*it)->vortexImpact(x, y))
+            return true;
+    }
+    return false;
+}
+
+// Determine the winner of the game
+Player* StudentWorld::winner()
+{
+    Player* winner = m_peach;
+    
+    if (m_peach->getStars() > m_yoshi->getStars()) winner = m_peach;
+    else if (m_peach->getStars() < m_yoshi->getStars()) winner = m_yoshi;
+    
+    if (m_peach->getStars() == m_yoshi->getStars())
+    {
+        if (m_peach->getCoins() > m_yoshi->getCoins()) winner = m_peach;
+        else if (m_peach->getCoins() < m_yoshi->getCoins()) winner = m_yoshi;
+        else
+        {
+            switch (randInt(0,1))
+            {
+                case 0:
+                    winner = m_peach;
+                    break;
+                case 1:
+                    winner = m_yoshi;
+                    break;
+            }
+        }
+    }
+    
+    return winner;
+}
